@@ -1,11 +1,11 @@
 === Gallery Custom Links ===
 Contributors: TigrouMeow
 Tags: custom, links, gallery, gutenberg
-Donate link: https://meowapps.com/donation/
+Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
-Tested up to: 6.5
+Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -48,9 +48,14 @@ Replace all the files. Nothing else to do.
 
 == Changelog ==
 
+= 2.2.1 (2024/11/04) =
+* Fix: Fixed common libs.
+* Fix: Missing properties (PHP 8.1), non-dynamic properties.
+* Update: Remove the dependency to WordPress scripts.
+* Info: If you like the plugin, your reviews are welcome [here](https://wordpress.org/support/plugin/gallery-custom-links/reviews/?rate=5#new-post). Thank you :)
+
 = 2.2.0 (2024/06/03) =
 * Add: Updated to the latest libs.
-* Info: If you like the plugin, your reviews are welcome [here](https://wordpress.org/support/plugin/gallery-custom-links/reviews/?rate=5#new-post). Thank you :)
 
 = 2.1.9 (2024/04/06) =
 * Add: Javascript method to rewrite the links. It is the fastest method, but the links won't be hardcoded. Only the visitor will experience the links.

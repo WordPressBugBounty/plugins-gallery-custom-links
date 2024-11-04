@@ -2,6 +2,8 @@
 
 class Meow_MGCL_Linker {
 
+  private $core;
+
 	public function __construct( $core ) {
     $this->core = $core;
     //add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 6 );

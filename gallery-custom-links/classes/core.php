@@ -229,6 +229,7 @@ class Meow_MGCL_Core
 
 	function meow_gallery_link_attributes( $link_attributes, $mediaId, $data ) {
 		$link = get_post_meta( $mediaId, '_gallery_link_url', true );
+		$link = filter_var( $link, FILTER_SANITIZE_URL );
 		if ( !empty( $link ) ) {
 			$target = get_post_meta( $mediaId, '_gallery_link_target', true );
 			$rel = get_post_meta( $mediaId, '_gallery_link_rel', true );

@@ -63,6 +63,7 @@ class Meow_MGCL_Core_Button_Meow_Gallery {
 	function linker( $handled, $element, $parent, $mediaId, $url, $rel, $target ) {
     // Let's look for the closest link tag enclosing the image
     $anotherParent = $parent->parent();
+    $url = esc_url( $url );
 
     if ( $handled || $anotherParent->class !== 'mgl-icon' ) {
       return $handled;

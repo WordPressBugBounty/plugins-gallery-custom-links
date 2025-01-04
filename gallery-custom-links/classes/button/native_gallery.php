@@ -68,6 +68,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
       error_log( 'Linker: Will embed the IMG tag.' );
     }
     $label = $value = get_option( 'mgcl_button_label', "Click here" );
+    $url = esc_url( $url );
     if ( $this->core->parsingEngine === 'HtmlDomParser' ) {
       $elemGalleryItem->innertext = $elemGalleryItem->innertext . $style . '<div id="mgcl-' . $id . '"><a href="' . $url . 
       '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
@@ -87,6 +88,8 @@ class Meow_MGCL_Core_Button_Native_Gallery {
 
     $id = uniqid();
     $style = $this->get_button_style( $id );
+    $url = esc_url( $url );
+
     return $style . '<div id="mgcl-' . $id . '"><a href="' . $url . '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
     ' . $label . '</a></div>';
   }

@@ -227,6 +227,19 @@ class Meow_MGCL_Core
 		return $hasChanges ? $finalHtml : $buffer;
 	}
 
+	function sanitize_url( $url ) {
+		$has_http_https = preg_match( '/^https?:\/\//', $url );
+		$escaped = esc_url( $url );
+		
+		// Remove the http:// or https:// if it was not there, so we can keep the URL relative
+		if ( !$has_http_https ) {
+			$escaped = str_replace( 'http://', '', $escaped );
+			$escaped = str_replace( 'https://', '', $escaped );
+		}
+
+		return $escaped;
+	}
+
 	function meow_gallery_link_attributes( $link_attributes, $mediaId, $data ) {
 		$link = get_post_meta( $mediaId, '_gallery_link_url', true );
 		$link = filter_var( $link, FILTER_SANITIZE_URL );

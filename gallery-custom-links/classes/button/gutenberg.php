@@ -72,7 +72,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
     $elemBlocksGalleryItem = $parent->parent();
     $elemBlocksGalleryItem = $parent;
 
-    $url = esc_url( $url );
+    $url = $this->core->sanitize_url( $url );
 
     $classes = explode( ' ', $elemBlocksGalleryItem->class );
     if ( $handled || !in_array( 'wp-block-image', $classes ) ) {

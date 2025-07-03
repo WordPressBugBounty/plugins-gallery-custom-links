@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.2.3
+Stable tag: 2.2.4
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -47,6 +47,9 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.2.4 (2025/07/03) =
+* Update: Common libraries have been updated to improve stability and performance.
 
 = 2.2.3 (2025/02/02) =
 * Fix: New URL sanitization was causing issues with some URLs.

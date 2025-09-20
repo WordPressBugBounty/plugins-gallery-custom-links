@@ -3,9 +3,9 @@ Contributors: TigrouMeow
 Tags: custom, links, gallery, gutenberg
 Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.4
+Stable tag: 2.2.5
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -47,6 +47,10 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.2.5 (2025/09/20) =
+* Update: Fresh components.
+* Update: Updated Common library.
 
 = 2.2.4 (2025/07/03) =
 * Update: Common libraries have been updated to improve stability and performance.

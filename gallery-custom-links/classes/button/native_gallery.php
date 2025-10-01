@@ -72,9 +72,9 @@ class Meow_MGCL_Core_Button_Native_Gallery {
     $label = $value = get_option( 'mgcl_button_label', "Click here" );
     $url = $this->core->sanitize_url( $url );
     if ( $this->core->parsingEngine === 'HtmlDomParser' ) {
-      $elemGalleryItem->innertext = $elemGalleryItem->innertext . $style . '<div id="mgcl-' . $id . '"><a href="' . $url . 
-      '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
-      ' . $label . '</a></div>';
+      $elemGalleryItem->innertext = $elemGalleryItem->innertext . $style . '<div id="mgcl-' . esc_attr( $id ) . '"><a href="' . esc_attr( $url ) .
+      '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . esc_attr( $target ) . '" rel="' . esc_attr( $rel ) . '">
+      ' . esc_html( $label ) . '</a></div>';
     }
     else {
       return false;
@@ -92,7 +92,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
     $style = $this->get_button_style( $id );
     $url = $this->core->sanitize_url( $url );
 
-    return $style . '<div id="mgcl-' . $id . '"><a href="' . $url . '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
-    ' . $label . '</a></div>';
+    return $style . '<div id="mgcl-' . esc_attr( $id ) . '"><a href="' . esc_attr( $url ) . '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . esc_attr( $target ) . '" rel="' . esc_attr( $rel ) . '">
+    ' . esc_html( $label ) . '</a></div>';
   }
 }

@@ -87,9 +87,9 @@ class Meow_MGCL_Core_Button_Gutenberg {
     }
     $label = $value = get_option( 'mgcl_button_label', "Click here" );
     if ( $this->core->parsingEngine === 'HtmlDomParser' ) {
-      $elemBlocksGalleryItem->innertext = $elemBlocksGalleryItem->innertext . $style . '<div id="mgcl-' . $id . '"><a href="' . $url . 
-        '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
-        ' . $label . '</a></div>';
+      $elemBlocksGalleryItem->innertext = $elemBlocksGalleryItem->innertext . $style . '<div id="mgcl-' . esc_attr( $id ) . '"><a href="' . esc_attr( $url ) .
+        '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . esc_attr( $target ) . '" rel="' . esc_attr( $rel ) . '">
+        ' . esc_html( $label ) . '</a></div>';
     }
     else {
       return false;
@@ -105,7 +105,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
 
     $id = uniqid();
     $style = $this->get_button_style( $id );
-    return $style . '<div id="mgcl-' . $id . '"><a href="' . $url . '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">
-    ' . $label . '</a></div>';
+    return $style . '<div id="mgcl-' . esc_attr( $id ) . '"><a href="' . esc_attr( $url ) . '" class="custom-link-button no-lightbox" onclick="event.stopPropagation()" target="' . esc_attr( $target ) . '" rel="' . esc_attr( $rel ) . '">
+    ' . esc_html( $label ) . '</a></div>';
   }
 }

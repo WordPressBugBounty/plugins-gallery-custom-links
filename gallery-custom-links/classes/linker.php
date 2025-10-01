@@ -25,32 +25,32 @@ class Meow_MGCL_Linker {
         }
 
         if ( $this->core->parsingEngine === 'HtmlDomParser' ) {
-          $potentialLinkNode->{'href'} = $url;
+          $potentialLinkNode->{'href'} = esc_url( $url );
           $class = $potentialLinkNode->{'class'};
           $class = empty( $class ) ? 'custom-link no-lightbox' : ( $class . ' custom-link no-lightbox' );
           $potentialLinkNode->{'class'} = $class;
           $potentialLinkNode->{'title'} = $title;
           $potentialLinkNode->{'onclick'} = 'event.stopPropagation()';
           if ( !empty( $target ) )
-            $potentialLinkNode->{'target'} = $target;
+            $potentialLinkNode->{'target'} = esc_attr( $target );
           if ( !empty( $rel ) )
-            $potentialLinkNode->{'rel'} = $rel;
+            $potentialLinkNode->{'rel'} = esc_attr( $rel );
           if ( !empty( $aria ) )
-            $potentialLinkNode->{'aria-label'} = $aria;
+            $potentialLinkNode->{'aria-label'} = esc_attr( $aria );
         }
         else {
-          $potentialLinkNode->attr( 'href', $url );
+          $potentialLinkNode->attr( 'href', esc_url( $url ) );
           $class = $potentialLinkNode->attr( 'class' );
           $class = empty( $class ) ? 'custom-link no-lightbox' : ( $class . ' custom-link no-lightbox' );
           $potentialLinkNode->attr( 'class', $class );
           $potentialLinkNode->attr( 'title', $title );
           $potentialLinkNode->attr( 'onclick', 'event.stopPropagation()' );
           if ( !empty( $target ) )
-            $potentialLinkNode->attr( 'target', $target );
+            $potentialLinkNode->attr( 'target', esc_attr( $target ) );
           if ( !empty( $rel ) )
-            $potentialLinkNode->attr( 'rel', $rel );
+            $potentialLinkNode->attr( 'rel', esc_attr( $rel ) );
           if ( !empty( $aria ) )
-            $potentialLinkNode->attr['aria-label'] = $aria;
+            $potentialLinkNode->attr( 'aria-label', esc_attr( $aria ) );
         }
         return true;
       }
@@ -67,25 +67,44 @@ class Meow_MGCL_Linker {
     }
     if ( $this->core->parsingEngine === 'HtmlDomParser' ) {
 	// XXXX: Custom code with $aria, Christoph Letmaier, 22.01.2020
-	$element->outertext = '<a href="' . $url . '" class="custom-link no-lightbox" title="' . $title . '" aria-label="' . $aria . '" onclick="event.stopPropagation()" target="' . $target . '" rel="' . $rel . '">' . $element . '</a>';
+	$element->outertext = '<a href="' . esc_attr( $url ) . '" class="custom-link no-lightbox" title="' . esc_attr( $title ) . '" aria-label="' . esc_attr( $aria ) . '" onclick="event.stopPropagation()" target="' . esc_attr( $target ) . '" rel="' . esc_attr( $rel ) . '">' . $element . '</a>';
     }
     else {
-      if ( $parent->tag === 'figure' )
-      $parent = $parent->parent();
-      $a = new DiDom\Element('a');
-      $a->attr( 'href', $url );
-      $a->attr( 'class', 'custom-link no-lightbox' );
-      $a->attr( 'onclick', 'event.stopPropagation()' );
-      $a->attr( 'target', $target );
-      $a->attr( 'rel', $rel );
-	  // XXXX: Custom code with $aria, Christoph Letmaier, 22.01.2020
-      $a->attr( 'aria-label', $aria );
-      $a->appendChild( $parent->children() );
-	  
-      foreach( $parent->children() as $img ) {
-        $img->remove();
+      // For DiDom, we need to wrap the element in an anchor tag
+      if ( isset( $parent->tag ) && $parent->tag === 'figure' )
+        $parent = $parent->parent();
+
+      // Check if parent is a valid Element (not Document)
+      if ( !isset( $parent->tag ) || !method_exists( $parent, 'children' ) ) {
+        // If parent is Document or invalid, just wrap the element itself
+        $a = new DiDom\Element('a');
+        $a->attr( 'href', esc_url( $url ) );
+        $a->attr( 'class', 'custom-link no-lightbox' );
+        $a->attr( 'onclick', 'event.stopPropagation()' );
+        $a->attr( 'target', esc_attr( $target ) );
+        $a->attr( 'rel', esc_attr( $rel ) );
+        $a->attr( 'aria-label', esc_attr( $aria ) );
+        $a->appendChild( $element );
+        $element->replace( $a );
       }
-      $parent->appendChild( $a );
+      else {
+        // Parent is a valid element, wrap its children
+        $a = new DiDom\Element('a');
+        $a->attr( 'href', esc_url( $url ) );
+        $a->attr( 'class', 'custom-link no-lightbox' );
+        $a->attr( 'onclick', 'event.stopPropagation()' );
+        $a->attr( 'target', esc_attr( $target ) );
+        $a->attr( 'rel', esc_attr( $rel ) );
+        // XXXX: Custom code with $aria, Christoph Letmaier, 22.01.2020
+        $a->attr( 'aria-label', esc_attr( $aria ) );
+
+        // Move all children from parent to the new anchor element
+        foreach( $parent->children() as $child ) {
+          $a->appendChild( $child );
+        }
+
+        $parent->appendChild( $a );
+      }
     }
     return true;
 	}

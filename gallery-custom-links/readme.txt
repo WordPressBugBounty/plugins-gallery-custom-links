@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.5
+Stable tag: 2.2.6
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -47,6 +47,10 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.2.6 (2025/10/01) =
+* Fix: Resolved DiDom engine crash when parent element is a Document object.
+* Fix: Addressed security vulnerabilities by implementing input sanitization and output escaping.
 
 = 2.2.5 (2025/09/20) =
 * Update: Fresh components.

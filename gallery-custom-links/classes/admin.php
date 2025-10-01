@@ -89,14 +89,18 @@ class Meow_MGCL_Admin extends MeowCommon_Admin {
 
 	function apply_filter_attachment_fields_to_save( $post, $attachment ) {
 		if ( isset( $attachment['gallery_link_url'] ) )
-			update_post_meta( $post['ID'], '_gallery_link_url', $attachment['gallery_link_url'] );
-		if ( isset( $attachment['gallery_link_target'] ) )
-			update_post_meta( $post['ID'], '_gallery_link_target', $attachment['gallery_link_target'] );
+			update_post_meta( $post['ID'], '_gallery_link_url', esc_url_raw( $attachment['gallery_link_url'] ) );
+		if ( isset( $attachment['gallery_link_target'] ) ) {
+			// Whitelist validation to prevent XSS via POST manipulation
+			$target = in_array( $attachment['gallery_link_target'], array( '_self', '_blank' ), true )
+				? $attachment['gallery_link_target'] : '_self';
+			update_post_meta( $post['ID'], '_gallery_link_target', $target );
+		}
 		if ( isset( $attachment['gallery_link_rel'] ) )
-			update_post_meta( $post['ID'], '_gallery_link_rel', $attachment['gallery_link_rel'] );
+			update_post_meta( $post['ID'], '_gallery_link_rel', sanitize_text_field( $attachment['gallery_link_rel'] ) );
 		// XXXX: Custom code for saving _gallery_link_aria, Christoph Letmaier, 14.01.2020
 		if ( isset( $attachment['gallery_link_aria'] ) )
-			update_post_meta( $post['ID'], '_gallery_link_aria', $attachment['gallery_link_aria'] );
+			update_post_meta( $post['ID'], '_gallery_link_aria', sanitize_text_field( $attachment['gallery_link_aria'] ) );
 		return $post;
 	}
 

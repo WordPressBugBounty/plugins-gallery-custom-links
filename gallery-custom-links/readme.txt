@@ -3,9 +3,9 @@ Contributors: TigrouMeow
 Tags: custom, links, gallery, gutenberg
 Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.6
+Stable tag: 2.2.8
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -47,6 +47,9 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.2.8 (2025/12/03) =
+* Fix: Corrected deprecated button classes.
 
 = 2.2.6 (2025/10/01) =
 * Fix: Resolved DiDom engine crash when parent element is a Document object.

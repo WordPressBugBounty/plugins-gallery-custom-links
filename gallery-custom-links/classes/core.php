@@ -22,7 +22,7 @@ class Meow_MGCL_Core
 		$this->isObMode = get_option( 'mgcl_obmode', $this->isObMode );
 		$this->parsingEngine = get_option( 'mgcl_parsing_engine', $this->parsingEngine );
 		$this->enableLogs = get_option( 'mgcl_log', $this->enableLogs );
-		$this->is_rest = MeowCommon_Helpers::is_rest();
+		$this->is_rest = MeowKit_MGCL_Helpers::is_rest();
 		$this->is_cli = defined( 'WP_CLI' ) && WP_CLI;
 		$this->is_visitor = !$this->is_cli && !$this->is_rest && !is_admin();
 		class_exists( 'MeowPro_MGCL_Core' ) && new MeowPro_MGCL_Core( $this );

@@ -2,6 +2,8 @@
 
 class Meow_MGCL_Core_Button_Gutenberg {
 
+  private $core;
+
 	public function __construct( $core ) {
     $this->core = $core;
     add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 7 );
@@ -10,7 +12,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
 
   function get_style( $id ) {
     return "<style>
-      #mgcl-${id} {
+      #mgcl-$id {
         width: 100%;
         height: 100%;
         position: absolute;
@@ -18,11 +20,11 @@ class Meow_MGCL_Core_Button_Gutenberg {
         justify-content: end;
         padding: 5px;
       }
-      #mgcl-${id} a {
+      #mgcl-$id a {
         height: auto !important;
         flex: none !important;
       }
-      #mgcl-${id} a {
+      #mgcl-$id a {
         font-size: 15px;
         text-decoration: none;
         padding: 2px 10px;
@@ -32,7 +34,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
         background: rgba(15, 115, 239, 0.80);
         color: white;
       }
-      #mgcl-${id} a:hover { 
+      #mgcl-$id a:hover { 
         background: rgba(15, 115, 239, 0.9);
       }
     </style>";
@@ -40,10 +42,10 @@ class Meow_MGCL_Core_Button_Gutenberg {
 
   function get_button_style( $id ) {
     return "<style>
-      #mgcl-${id} {
+      #mgcl-$id {
         position: relative;
       }
-      #mgcl-${id} a {
+      #mgcl-$id a {
         position: absolute; 
         bottom: 8px; left: 8px;
         height: auto !important;
@@ -60,7 +62,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
         color: white;
         z-index: 100;
       }
-      #mgcl-${id} a:hover { 
+      #mgcl-$id a:hover {
         background: rgba(15, 115, 239, 0.9);
       }
     </style>";

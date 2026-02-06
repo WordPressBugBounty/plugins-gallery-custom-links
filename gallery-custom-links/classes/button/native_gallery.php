@@ -15,12 +15,12 @@ class Meow_MGCL_Core_Button_Native_Gallery {
       padding: 2px 10px; box-shadow: 0px 0px 1px 0px rgba(0, 0, 0, 0.5);
       border-radius: 10px; width: calc(100% - 10px); text-align: center; background: rgba(15, 115, 239, 0.80); color: white;';
     $css_hover = 'background: rgba(15, 115, 239, 0.9);';
-    return "<style>#mgcl-${id} { position: relative; } #mgcl-${id} a { ${css} } #mgcl-${id} a:hover { ${css_hover} }</style>";
+    return "<style>#mgcl-$id { position: relative; } #mgcl-$id a { $css } #mgcl-$id a:hover { $css_hover }</style>";
   }
 
   function get_button_style( $id ) {
     return "<style>
-      #mgcl-${id} {
+      #mgcl-$id {
         box-sizing: border-box;
         height: 100%;
         width: 100%;
@@ -29,7 +29,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
         justify-content: end;
         padding: 5px;
       }
-      #mgcl-${id} a {
+      #mgcl-$id a {
         box-sizing: border-box;
         height: auto !important;
         flex: none !important;
@@ -42,7 +42,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
         background: rgba(15, 115, 239, 0.80);
         color: white;
       }
-      #mgcl-${id} a:hover { 
+      #mgcl-$id a:hover {
         background: rgba(15, 115, 239, 0.9);
       }
     </style>";

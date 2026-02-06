@@ -1,5 +1,5 @@
 <?php
-class Meow_MGCL_Admin extends MeowCommon_Admin {
+class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 
 	public $core;
 

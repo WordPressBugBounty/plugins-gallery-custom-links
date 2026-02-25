@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.8
+Stable tag: 2.2.9
 
 Gallery Custom Links allows you to link images to a specified URL. Tested with WordPress Gallery, Gutenberg, the Meow Gallery and others.
 
@@ -47,6 +47,13 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.2.9 (2026/02/25) =
+* Fix: Ensure plugin settings now save and update correctly.
+* Update: Improve multisite compatibility.
+* 🎵 Discuss with others about Gallery Custom Links on [the Discord](https://discord.gg/bHDGh38).
+* 🌴 Keep us motivated with [a little review here](https://wordpress.org/support/plugin/gallery-custom-links/reviews/). Thank you!
+* 🥰 If you want to help us, check our [Patreon](https://www.patreon.com/meowapps). Thank you!
 
 = 2.2.8 (2025/12/03) =
 * Fix: Corrected deprecated button classes.

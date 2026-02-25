@@ -21,7 +21,7 @@ class Meow_MGCL_Rest
 			register_rest_route( $this->namespace, '/update_option', array(
 				'methods' => 'POST',
 				'permission_callback' => array( $this->core, 'can_access_settings' ),
-				'callback' => array( $this, 'rest_update_option' )
+				'callback' => array( $this, 'rest_update_options' )
 			) );
 			register_rest_route( $this->namespace, '/all_settings', array(
 				'methods' => 'GET',
@@ -47,31 +47,24 @@ class Meow_MGCL_Rest
 		], 200 );
 	}
 
-	function rest_update_option( $request ) {
+	function rest_update_options( $request ) {
 		$params = $request->get_json_params();
-		try {
-			$name = $params['name'];
-			$options = $this->admin->list_options();
-			if ( !array_key_exists( $name, $options ) ) {
-				return new WP_REST_Response([ 'success' => false, 'message' => 'This option does not exist.' ], 200 );
+		$options = $params;
+
+		foreach ( $options as $option => $value ) {
+			if ( !in_array( $option, $this->admin->list_options() ) ) {
+				return new WP_REST_Response( [ 'success' => false, 'message' => "The option $option does not exist." ], 400 );
 			}
-			$value = is_bool( $params['value'] ) ? ( $params['value'] ? '1' : '' ) : $params['value'];
-			$success = update_option( $name, $value );
-			if ( $success ) {
-				$res = $this->validate_updated_option( $name );
-				$result = $res['result'];
-				$message = $res['message'];
-				return new WP_REST_Response([ 'success' => $result, 'message' => $message ], 200 );
-			}
-			return new WP_REST_Response([ 'success' => false, 'message' => "Could not update option." ], 200 );
-		} 
-		catch (Exception $e) {
-			return new WP_REST_Response([
-				'success' => false,
-				'message' => $e->getMessage(),
-			], 500 );
 		}
+
+		foreach ( $options as $option => $value ) {
+			update_option( $option, $value );
+		}
+
+		return new WP_REST_Response( [ 'success' => true, 'data' => $this->admin->get_all_options() ], 200 );
 	}
+
+
 
 	function validate_updated_option( $option_name ) {
 		$obmode = get_option( 'mgcl_obmode', false );

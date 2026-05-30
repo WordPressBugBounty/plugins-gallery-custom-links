@@ -72,6 +72,7 @@ class Meow_MGCL_Rest
 		$log = get_option( 'mgcl_log', false );
 		$button_enabled = get_option( 'mgcl_button_enabled', false );
 		$button_label = get_option( 'mgcl_button_label', "Click here" );
+		$skip_on_current_page = get_option( 'mgcl_skip_on_current_page', false );
 		if ( $obmode === '' )
 			update_option( 'mgcl_obmode', false );
 		if ( $parsing_engine === '' )
@@ -82,6 +83,8 @@ class Meow_MGCL_Rest
 			update_option( 'mgcl_button_enabled', false );
 		if ( $button_label === '' )
 			update_option( 'mgcl_button_label', "Click here" );
+		if ( $skip_on_current_page === '' )
+			update_option( 'mgcl_skip_on_current_page', false );
 		return $this->createValidationResult();
 	}
 

@@ -13,6 +13,7 @@ class Meow_MGCL_Core
 	// 'HtmlDomParser' (less prone to break badly formatted HTML), 'DiDom' (faster) or 'Javascript'
 	public $parsingEngine = 'HtmlDomParser';
 	public $enableLogs = false;
+	public $skipOnCurrentPage = false;
 	public $site_url = null;
 	private $is_visitor = false;
 	private $namespace = 'gallery-custom-links/v1';
@@ -22,6 +23,7 @@ class Meow_MGCL_Core
 		$this->isObMode = get_option( 'mgcl_obmode', $this->isObMode );
 		$this->parsingEngine = get_option( 'mgcl_parsing_engine', $this->parsingEngine );
 		$this->enableLogs = get_option( 'mgcl_log', $this->enableLogs );
+		$this->skipOnCurrentPage = get_option( 'mgcl_skip_on_current_page', $this->skipOnCurrentPage );
 		$this->is_rest = MeowKit_MGCL_Helpers::is_rest();
 		$this->is_cli = defined( 'WP_CLI' ) && WP_CLI;
 		$this->is_visitor = !$this->is_cli && !$this->is_rest && !is_admin();
@@ -171,6 +173,13 @@ class Meow_MGCL_Core
 		if ( $mediaId ) {
 			$url = get_post_meta( $mediaId, '_gallery_link_url', true );
 			if ( !empty( $url ) ) {
+				// Skip if URL points to the current page and option is enabled
+				if ( $this->skipOnCurrentPage && $this->is_current_page_url( $url ) ) {
+					if ( $this->enableLogs ) {
+						error_log( 'Linker: Skipping Media ' . $mediaId . ' - URL matches current page (' . $url . ')' );
+					}
+					return false;
+				}
 				$target = get_post_meta( $mediaId, '_gallery_link_target', true );
 				$rel = get_post_meta( $mediaId, '_gallery_link_rel', true );
 				// XXXX: Custom code for fetching _gallery_link_aria, Christoph Letmaier, 14.01.2020
@@ -240,10 +249,41 @@ class Meow_MGCL_Core
 		return $escaped;
 	}
 
+	function is_current_page_url( $url ) {
+		// Get the current page URL
+		$current_url = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
+		$current_full_url = home_url( $current_url );
+
+		// Normalize both URLs for comparison
+		$url = $this->normalize_url_for_comparison( $url );
+		$current_url_normalized = $this->normalize_url_for_comparison( $current_full_url );
+		$current_path_normalized = $this->normalize_url_for_comparison( $current_url );
+
+		// Compare: check both full URL and path-only matches
+		return $url === $current_url_normalized || $url === $current_path_normalized;
+	}
+
+	function normalize_url_for_comparison( $url ) {
+		$url = strtolower( trim( $url ) );
+		// Remove trailing slash
+		$url = rtrim( $url, '/' );
+		// Remove query string and fragment for comparison
+		$url = preg_replace( '/[?#].*$/', '', $url );
+		// Remove protocol
+		$url = preg_replace( '/^https?:\/\//', '', $url );
+		// Remove www
+		$url = preg_replace( '/^www\./', '', $url );
+		return $url;
+	}
+
 	function meow_gallery_link_attributes( $link_attributes, $mediaId, $data ) {
 		$link = get_post_meta( $mediaId, '_gallery_link_url', true );
 		$link = filter_var( $link, FILTER_SANITIZE_URL );
 		if ( !empty( $link ) ) {
+			// Skip if URL points to the current page and option is enabled
+			if ( $this->skipOnCurrentPage && $this->is_current_page_url( $link ) ) {
+				return $link_attributes;
+			}
 			$target = get_post_meta( $mediaId, '_gallery_link_target', true );
 			$rel = get_post_meta( $mediaId, '_gallery_link_rel', true );
 			$link_attributes['href'] = empty( $link ) ? '' : $link;
@@ -348,9 +388,24 @@ class Meow_MGCL_Core
 	}
 
 	function linkify_script() {
+		$skipOnCurrentPage = $this->skipOnCurrentPage ? 'true' : 'false';
 		?>
 			<script>
 				async function linkify() {
+					const skipOnCurrentPage = <?php echo $skipOnCurrentPage; ?>;
+					const currentUrl = window.location.href.toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
+					const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
+
+					function isCurrentPageUrl(url) {
+						if (!skipOnCurrentPage) return false;
+						let normalizedUrl = url.toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
+						// Remove protocol and www for comparison
+						normalizedUrl = normalizedUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+						const normalizedCurrentUrl = currentUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+						const normalizedCurrentPath = currentPath;
+						return normalizedUrl === normalizedCurrentUrl || normalizedUrl === normalizedCurrentPath || ('/' + normalizedUrl) === normalizedCurrentPath;
+					}
+
 					const idWithElements = [];
 					const elements = document.querySelectorAll('[class^="wp-image-"]');
 					const ids = Array.from(elements).map((element, i) => {
@@ -384,7 +439,7 @@ class Meow_MGCL_Core
 					idWithElements.forEach((v) => {
 						const { key, id, element } = v;
 						const { link_url, link_target, link_rel, link_aria } = linkSettings[id];
-						if ( link_url ) {
+						if ( link_url && !isCurrentPageUrl(link_url) ) {
 							const button_html = buttons.find((b) => b.key === key)?.html;
 							if (button_html) {
 								element.insertAdjacentHTML('afterend', button_html);

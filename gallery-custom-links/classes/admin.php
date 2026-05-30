@@ -120,6 +120,7 @@ class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 			'mgcl_log' => false,
 			'mgcl_button_enabled' => false,
 			'mgcl_button_label' => "Click here",
+			'mgcl_skip_on_current_page' => false,
 		);
 	}
 

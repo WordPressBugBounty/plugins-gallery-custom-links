@@ -109,6 +109,9 @@ class Meow_MGCL_Rest
 			}
 			foreach ( $params as $key => $value ) {
 				if ( $key === 'post_id' ) continue;
+				if ( $key === '_gallery_link_page_links' ) {
+					$value = $this->sanitize_page_links( $value );
+				}
 				update_post_meta( $postId, $key, $value );
 			}
 			return new WP_REST_Response([ 'success' => true ], 200 );
@@ -119,5 +122,20 @@ class Meow_MGCL_Rest
 				'message' => $e->getMessage(),
 			], 500 );
 		}
+	}
+
+	private function sanitize_page_links( $value ) {
+		if ( !is_array( $value ) ) {
+			return array();
+		}
+		$clean = array();
+		foreach ( $value as $entry ) {
+			if ( !is_array( $entry ) ) continue;
+			$page = isset( $entry['page'] ) ? esc_url_raw( trim( $entry['page'] ) ) : '';
+			$target = isset( $entry['target'] ) ? esc_url_raw( trim( $entry['target'] ) ) : '';
+			if ( $page === '' && $target === '' ) continue;
+			$clean[] = array( 'page' => $page, 'target' => $target );
+		}
+		return $clean;
 	}
 }

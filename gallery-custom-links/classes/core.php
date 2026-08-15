@@ -172,6 +172,8 @@ class Meow_MGCL_Core
 
 		if ( $mediaId ) {
 			$url = get_post_meta( $mediaId, '_gallery_link_url', true );
+			// Pro: allow per-page linkage to override (or provide) the URL based on the current page
+			$url = apply_filters( 'mgcl_link_url', $url, $mediaId );
 			if ( !empty( $url ) ) {
 				// Skip if URL points to the current page and option is enabled
 				if ( $this->skipOnCurrentPage && $this->is_current_page_url( $url ) ) {
@@ -278,6 +280,7 @@ class Meow_MGCL_Core
 
 	function meow_gallery_link_attributes( $link_attributes, $mediaId, $data ) {
 		$link = get_post_meta( $mediaId, '_gallery_link_url', true );
+		$link = apply_filters( 'mgcl_link_url', $link, $mediaId );
 		$link = filter_var( $link, FILTER_SANITIZE_URL );
 		if ( !empty( $link ) ) {
 			// Skip if URL points to the current page and option is enabled
@@ -312,77 +315,35 @@ class Meow_MGCL_Core
 	function unlink_lightboxes_script() {
 		?>
 			<script>
-				// Used by Gallery Custom Links to handle tenacious Lightboxes
-				//jQuery(document).ready(function () {
-
-					function mgclInit() {
-						
-						// In jQuery:
-						// if (jQuery.fn.off) {
-						// 	jQuery('.no-lightbox, .no-lightbox img').off('click'); // jQuery 1.7+
-						// }
-						// else {
-						// 	jQuery('.no-lightbox, .no-lightbox img').unbind('click'); // < jQuery 1.7
-						// }
-
-						// 2022/10/24: In Vanilla JS
-						var elements = document.querySelectorAll('.no-lightbox, .no-lightbox img');
-						for (var i = 0; i < elements.length; i++) {
-						 	elements[i].onclick = null;
-						}
-
-
-						// In jQuery:
-						//jQuery('a.no-lightbox').click(mgclOnClick);
-
-						// 2022/10/24: In Vanilla JS:
-						var elements = document.querySelectorAll('a.no-lightbox');
-						for (var i = 0; i < elements.length; i++) {
-						 	elements[i].onclick = mgclOnClick;
-						}
-
-						// in jQuery:
-						// if (jQuery.fn.off) {
-						// 	jQuery('a.set-target').off('click'); // jQuery 1.7+
-						// }
-						// else {
-						// 	jQuery('a.set-target').unbind('click'); // < jQuery 1.7
-						// }
-						// jQuery('a.set-target').click(mgclOnClick);
-
-						// 2022/10/24: In Vanilla JS:
-						var elements = document.querySelectorAll('a.set-target');
-						for (var i = 0; i < elements.length; i++) {
-						 	elements[i].onclick = mgclOnClick;
-						}
+				// Used by Gallery Custom Links to handle tenacious Lightboxes.
+				//
+				// 2026/08/15: Until now this walked the DOM on load and set onclick = null on
+				// the images. That only ever removed handlers assigned as an onclick *property*,
+				// so every lightbox binding through addEventListener survived it: jQuery ones,
+				// delegated ones, and WordPress core's own "Expand on click" (the Interactivity
+				// API binds data-wp-on--click on the img, and its showLightbox() calls neither
+				// preventDefault nor stopPropagation). The lightbox opened and the link was
+				// followed at the same time, or the lightbox swallowed the click entirely.
+				//
+				// One listener on window in the capture phase fixes all of them at once: capture
+				// runs from the top of the tree down, so we see the click before anything bound
+				// on the image itself and can stop it from ever getting there. We deliberately do
+				// NOT preventDefault, which leaves the browser to follow the link on its own, so
+				// target, ctrl/cmd-click and middle-click all keep behaving natively. Being
+				// delegated, it also covers galleries added to the page after load (AJAX,
+				// infinite scroll), which the old load-time pass never saw.
+				window.addEventListener('click', function (ev) {
+					if (!ev.target || !ev.target.closest) {
+						return;
 					}
-
-					function mgclOnClick() {
-						if (!this.target || this.target == '' || this.target == '_self')
-							window.location = this.href;
-						else
-							window.open(this.href,this.target);
-						return false;
+					if (!ev.target.closest('a.no-lightbox, a.set-target')) {
+						return;
 					}
-
-					// From WP Gallery Custom Links
-					// Reduce the number of  conflicting lightboxes
-					function mgclAddLoadEvent(func) {
-						var oldOnload = window.onload;
-						if (typeof window.onload != 'function') {
-							window.onload = func;
-						} else {
-							window.onload = function() {
-								oldOnload();
-								func();
-							}
-						}
+					ev.stopPropagation();
+					if (ev.stopImmediatePropagation) {
+						ev.stopImmediatePropagation();
 					}
-
-					mgclAddLoadEvent(mgclInit);
-					mgclInit();
-
-				//});
+				}, true);
 			</script>
 		<?php
 	}
@@ -473,6 +434,7 @@ class Meow_MGCL_Core
 		$link_settings = [];
 		foreach ( $ids as $media_id ) {
 			$link_url = get_post_meta( $media_id, '_gallery_link_url', true );
+			$link_url = apply_filters( 'mgcl_link_url', $link_url, $media_id );
 			$link_target = get_post_meta( $media_id, '_gallery_link_target', true );
 			$link_rel = get_post_meta( $media_id, '_gallery_link_rel', true );
 			$link_aria = get_post_meta( $media_id, '_gallery_link_aria', true );

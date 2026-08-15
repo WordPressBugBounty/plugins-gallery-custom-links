@@ -130,6 +130,7 @@ class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 			'_gallery_link_target' => '',
 			'_gallery_link_rel' => '',
 			'_gallery_link_aria' => '',
+			'_gallery_link_page_links' => array(),
 		);
 	}
 

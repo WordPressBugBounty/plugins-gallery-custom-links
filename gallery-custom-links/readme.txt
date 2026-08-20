@@ -3,9 +3,9 @@ Contributors: TigrouMeow
 Tags: custom, links, gallery, gutenberg
 Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,11 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.3.3 (2026/08/20) =
+* Add: Report in the page source showing how many images were scanned and linked.
+* Fix: Javascript parsing engine was not detecting any images.
+* Update: Common library and rebuilt assets.
 
 = 2.3.2 (2026/08/15) =
 * Add: Per-page linking, so the same media can point to different targets on different pages.

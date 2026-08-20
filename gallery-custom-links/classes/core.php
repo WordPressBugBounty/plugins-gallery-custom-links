@@ -50,6 +50,7 @@ class Meow_MGCL_Core
 			else {
 				add_filter( 'the_content', array( $this, 'linkify' ), 100 );
 				add_action( 'wp_footer', array( $this, 'unlink_lightboxes_script' ) ) ;
+				add_action( 'wp_footer', array( $this, 'content_mode_comment' ), 100 );
 			}
 
 			add_filter( 'mgl_link_attributes', array( $this, 'meow_gallery_link_attributes' ), 10, 3 );
@@ -223,19 +224,57 @@ class Meow_MGCL_Core
 		}
 
 		if ( empty( $html ) || is_bool( $html ) ) {
-			return $buffer;
+			$reason = 'the ' . $this->parsingEngine . ' engine could not parse this page';
+			// HtmlDomParser refuses anything over MAX_FILE_SIZE (600 KB) and simply returns false,
+			// which used to disable the whole plugin on big pages without a single hint anywhere.
+			if ( defined( 'MAX_FILE_SIZE' ) && strlen( $buffer ) > MAX_FILE_SIZE ) {
+				$reason .= ' because it is over the ' . size_format( MAX_FILE_SIZE ) . ' limit of that engine'
+					. ' (' . size_format( strlen( $buffer ) ) . '), try the DiDom engine';
+			}
+			if ( $this->enableLogs ) {
+				error_log( 'Linker: ' . $reason . '.' );
+			}
+			return $this->add_report( $buffer, $reason . '.' );
 		}
 
 		$hasChanges = false;
+		$scanned = 0;
+		$linked = 0;
 		// array( '.entry-content', '.gallery', '.wp-block-gallery' )
 		$classes = apply_filters( 'gallery_custom_links_classes', array( '' ) );
 		foreach ( $classes as $class ) {
 			foreach ( $html->find( $class . ' img' ) as $element ) {
-				$hasChanges = $this->linkify_element( $element ) || $hasChanges;
+				$scanned++;
+				if ( $this->linkify_element( $element ) ) {
+					$linked++;
+					$hasChanges = true;
+				}
 			}
 		}
 		$finalHtml = $this->parsingEngine === 'HtmlDomParser' ? $html : $html->html();
-		return $hasChanges ? $finalHtml : $buffer;
+		$finalHtml = $hasChanges ? (string)$finalHtml : $buffer;
+		return $this->add_report( $finalHtml,
+			$scanned . ' images scanned, ' . $linked . ' linked (' . $this->parsingEngine . ').' );
+	}
+
+	// A one-line report in the HTML, so anyone can see what the plugin did by looking at the
+	// source, without enabling the logs. Nearly every "it does nothing" report comes from one of
+	// the silent bail-outs (OB Mode off, page too big for the parser, media IDs not resolvable),
+	// and they all look exactly the same from the outside.
+	// It is only added right before </body>, which conveniently skips feeds, sitemaps, JSON and
+	// any partial buffer flushed in the middle of the page.
+	function add_report( $html, $message ) {
+		$position = strripos( $html, '</body>' );
+		if ( $position === false ) {
+			return $html;
+		}
+		$report = '<!-- Gallery Custom Links: ' . esc_html( $message ) . ' -->' . "\n";
+		return substr( $html, 0, $position ) . $report . substr( $html, $position );
+	}
+
+	function content_mode_comment() {
+		echo "\n<!-- Gallery Custom Links: OB Mode is off, so only the main content is parsed."
+			. " Images in the header, the footer or the sidebars are skipped. -->\n";
 	}
 
 	function sanitize_url( $url ) {
@@ -351,6 +390,7 @@ class Meow_MGCL_Core
 	function linkify_script() {
 		$skipOnCurrentPage = $this->skipOnCurrentPage ? 'true' : 'false';
 		?>
+			<!-- Gallery Custom Links: Javascript engine, the links are added by the browser and the HTML is left untouched. -->
 			<script>
 				async function linkify() {
 					const skipOnCurrentPage = <?php echo $skipOnCurrentPage; ?>;
@@ -367,15 +407,21 @@ class Meow_MGCL_Core
 						return normalizedUrl === normalizedCurrentUrl || normalizedUrl === normalizedCurrentPath || ('/' + normalizedUrl) === normalizedCurrentPath;
 					}
 
+					// The selector uses *= and not ^=. WordPress almost never puts wp-image-ID first in
+					// the class attribute (it is usually "attachment-large size-large wp-image-123"),
+					// so ^= silently matched nothing on most sites and the Javascript engine did nothing.
 					const idWithElements = [];
-					const elements = document.querySelectorAll('[class^="wp-image-"]');
-					const ids = Array.from(elements).map((element, i) => {
-						const classes = element.className.split(' ');
-						const wp_image_id = classes.find((c) => c.startsWith('wp-image-'));
-						const id = wp_image_id.replace('wp-image-', '');
-						idWithElements.push({ key: i, id, element });
-						return id;
+					document.querySelectorAll('[class*="wp-image-"]').forEach((element) => {
+						const match = /(?:^|\s)wp-image-(\d+)(?:\s|$)/.exec(element.getAttribute('class') || '');
+						if (!match) {
+							return;
+						}
+						idWithElements.push({ key: idWithElements.length, id: match[1], element });
 					});
+					if (!idWithElements.length) {
+						return;
+					}
+					const ids = idWithElements.map((v) => v.id);
 
 					const response = await fetch('<?php echo rest_url( 'gallery-custom-links/v1' ); ?>/link_settings', {
 						method: 'POST',
@@ -388,7 +434,8 @@ class Meow_MGCL_Core
 							ancestors: idWithElements.map((v) => ({
 								key: v.key,
 								id: v.id,
-								classNames: v.element.parentElement.className + ' ' + v.element.parentElement.parentElement.className
+								classNames: [v.element.parentElement, v.element.parentElement?.parentElement]
+									.map((el) => (el ? el.getAttribute('class') || '' : '')).join(' ').trim()
 							}))
 						})
 					});
@@ -399,7 +446,11 @@ class Meow_MGCL_Core
 					const { linkSettings, buttons } = result.data;
 					idWithElements.forEach((v) => {
 						const { key, id, element } = v;
-						const { link_url, link_target, link_rel, link_aria } = linkSettings[id];
+						const settings = linkSettings ? linkSettings[id] : null;
+						if (!settings) {
+							return;
+						}
+						const { link_url, link_target, link_rel, link_aria } = settings;
 						if ( link_url && !isCurrentPageUrl(link_url) ) {
 							const button_html = buttons.find((b) => b.key === key)?.html;
 							if (button_html) {
@@ -413,9 +464,13 @@ class Meow_MGCL_Core
 									}
 								});
 								element.style.cursor = 'pointer';
-								element.setAttribute('aria-label', link_aria);
-								element.setAttribute('rel', link_rel ?? '');
 								element.setAttribute('role', 'link');
+								if (link_aria) {
+									element.setAttribute('aria-label', link_aria);
+								}
+								if (link_rel) {
+									element.setAttribute('rel', link_rel);
+								}
 							}
 						}
 					});

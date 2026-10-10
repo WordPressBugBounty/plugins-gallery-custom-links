@@ -210,9 +210,15 @@ class Meow_MGCL_Core
 		$this->isEnabled = apply_filters( 'gallery_custom_links_enabled', true );
 		if ( !$this->isEnabled || !isset( $buffer ) || trim( $buffer ) === '' )
 			return $buffer;
+		// The HtmlDomParser swaps scripts, styles and HTML comments for "___noise___ 1003"
+		// placeholders and pastes them back on output, wherever such a placeholder appears. Text that
+		// already contained one (a comment author name, a comment body) received a stored chunk, such
+		// as the inside of an HTML comment, now outside of it: stored XSS (Wordfence, 2026-10). Any
+		// literal placeholder in the page is masked before parsing and unmasked in the final HTML.
+		$mask = '___mgcl' . wp_generate_password( 12, false ) . '___';
 		if ( $this->parsingEngine === 'HtmlDomParser' ) {
 			$html = new KubAT\PhpSimple\HtmlDomParser();
-			$html = $html->str_get_html( $buffer, true, true, DEFAULT_TARGET_CHARSET, false );
+			$html = $html->str_get_html( str_replace( '___noise___', $mask, $buffer ), true, true, DEFAULT_TARGET_CHARSET, false );
 		}
 		else {
 			$html = new DiDom\Document();
@@ -252,7 +258,7 @@ class Meow_MGCL_Core
 			}
 		}
 		$finalHtml = $this->parsingEngine === 'HtmlDomParser' ? $html : $html->html();
-		$finalHtml = $hasChanges ? (string)$finalHtml : $buffer;
+		$finalHtml = $hasChanges ? str_replace( $mask, '___noise___', (string)$finalHtml ) : $buffer;
 		return $this->add_report( $finalHtml,
 			$scanned . ' images scanned, ' . $linked . ' linked (' . $this->parsingEngine . ').' );
 	}

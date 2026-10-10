@@ -52,7 +52,7 @@ class Meow_MGCL_Rest
 		$options = $params;
 
 		foreach ( $options as $option => $value ) {
-			if ( !in_array( $option, $this->admin->list_options() ) ) {
+			if ( !array_key_exists( $option, $this->admin->list_options()) ) {
 				return new WP_REST_Response( [ 'success' => false, 'message' => "The option $option does not exist." ], 400 );
 			}
 		}

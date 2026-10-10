@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.3
+Stable tag: 2.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,11 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.3.4 (2026/10/10) =
+* Fix: Security: Prevent crafted text from injecting scripts through the HTML page parser.
+* Fix: Security: Prevent text in a comment from being turned into a script when the page is parsed for gallery links.
+* Fix: Validate option names correctly when updating settings through the REST API.
 
 = 2.3.3 (2026/08/20) =
 * Add: Report in the page source showing how many images were scanned and linked.

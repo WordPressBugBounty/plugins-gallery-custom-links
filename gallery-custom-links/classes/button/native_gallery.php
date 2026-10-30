@@ -6,7 +6,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
   
 	public function __construct( $core ) {
     $this->core = $core;
-    add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 7 );
+    add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 8 );
     add_filter( 'mgcl_button_linker', array( $this, 'button_linker' ), 101, 6 );
 	}
 
@@ -48,7 +48,7 @@ class Meow_MGCL_Core_Button_Native_Gallery {
     </style>";
   }
 
-	function linker( $handled, $element, $parent, $mediaId, $url, $rel, $target ) {
+	function linker( $handled, $element, $parent, $mediaId, $url, $rel, $aria, $target ) {
 
     // Let's look for the closest link tag enclosing the image
     $elemGalleryIcon = $parent->parent();

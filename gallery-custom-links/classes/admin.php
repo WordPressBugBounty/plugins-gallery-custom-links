@@ -18,8 +18,10 @@ class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 	function admin_enqueue_scripts() {
 
 		// Load the scripts
-		$physical_file = MGCL_PATH . '/app/index.js';
-		$cache_buster = file_exists( $physical_file ) ? filemtime( $physical_file ) : MGCL_VERSION;
+		// Both bundles share one version, so it follows whichever changed last: a change that only
+		// touches the vendor bundle (NekoUI) would otherwise keep its old copy in the browser cache.
+		$bundles = array_filter( array( MGCL_PATH . '/app/index.js', MGCL_PATH . '/app/vendor.js' ), 'file_exists' );
+		$cache_buster = $bundles ? max( array_map( 'filemtime', $bundles ) ) : MGCL_VERSION;
 		wp_register_script( 'mgcl_gallery_custom_links-vendor', MGCL_URL . 'app/vendor.js',
 			['wp-element', 'wp-i18n'], $cache_buster
 		);
@@ -41,6 +43,8 @@ class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 			'prefix' => MGCL_PREFIX,
 			'domain' => MGCL_DOMAIN,
 			'is_pro' => class_exists( 'MeowPro_MGCL_Core' ),
+			// Installed vs latest version for the header line (common/premium/renewal.php).
+			'version_info' => apply_filters( MGCL_PREFIX . '_meowapps_version_info', null ),
 			'is_registered' => !!$this->is_registered(),
 			'rest_nonce' => wp_create_nonce( 'wp_rest' )
 		], $this->get_all_options() ) );
@@ -79,7 +83,7 @@ class Meow_MGCL_Admin extends MeowKit_MGCL_Admin {
 		);
 		// XXXX: Custom code for new aria-label field, Christoph Letmaier, 14.01.2020
 		$fields['gallery_link_aria'] = array(
-			'label' => __( 'Arial Label', 'gallery-custom-links' ),
+			'label' => __( 'Aria Label', 'gallery-custom-links' ),
 			'input' => 'text',
 			'value' => get_post_meta( $post->ID, '_gallery_link_aria', true )
 		);

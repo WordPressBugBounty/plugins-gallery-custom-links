@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.4
+Stable tag: 2.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,18 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.3.6 (2026/10/30) =
+* Fix: Security: Prevent a duplicated attribute from being written unquoted by the page parser.
+
+= 2.3.5 (2026/10/30) =
+* Fix: Link buttons show again on Meow Gallery 5 layouts.
+* Fix: The button target no longer uses the aria label.
+* Fix: Call-to-action buttons stay inside each gallery image instead of overflowing its right edge.
+* Fix: The link settings endpoint now only accepts valid image IDs.
+* 🎵 Discuss with others about Gallery Custom Links on [the Discord](https://discord.gg/bHDGh38).
+* 🌴 Keep us motivated with [a little review here](https://wordpress.org/support/plugin/gallery-custom-links/reviews/). Thank you!
+* 🥰 If you want to help us, check our [Patreon](https://www.patreon.com/meowapps). Thank you!
 
 = 2.3.4 (2026/10/10) =
 * Fix: Security: Prevent crafted text from injecting scripts through the HTML page parser.
@@ -247,4 +259,8 @@ Replace all the files. Nothing else to do.
 
 == Screenshots ==
 
-1. The fields.
+
+1. Link any gallery photo to a page or a URL, here with a call-to-action button on each image.
+2. Set the link right in the Media Library: URL, target, rel and an aria label for each image.
+3. Pick the parsing engine, and turn on call-to-action buttons with your own label.
+

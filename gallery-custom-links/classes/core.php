@@ -87,9 +87,11 @@ class Meow_MGCL_Core
 
 	function add_rest_api() {
 		try {
+			// Public on purpose: the Javascript engine calls it from the front-end, for visitors.
 			register_rest_route( $this->namespace, '/link_settings', array(
 				'methods' => 'POST',
 				'callback' => array( $this, 'rest_link_settings' ),
+				'permission_callback' => '__return_true',
 			) );
 		}
 		catch (Exception $e) {
@@ -427,29 +429,35 @@ class Meow_MGCL_Core
 					if (!idWithElements.length) {
 						return;
 					}
-					const ids = idWithElements.map((v) => v.id);
-
-					const response = await fetch('<?php echo rest_url( 'gallery-custom-links/v1' ); ?>/link_settings', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'X-WP-Nonce': '<?php echo wp_create_nonce( 'wp_rest' ); ?>'
-						},
-						body: JSON.stringify({
-							ids,
-							ancestors: idWithElements.map((v) => ({
-								key: v.key,
-								id: v.id,
-								classNames: [v.element.parentElement, v.element.parentElement?.parentElement]
-									.map((el) => (el ? el.getAttribute('class') || '' : '')).join(' ').trim()
-							}))
-						})
-					});
-					const result = await response.json();
-					if ( !result.success ) {
-						return;
+					// The endpoint answers a limited number of images per request, bigger pages go in batches.
+					const batchSize = <?php echo (int)$this->get_link_settings_max_ids(); ?>;
+					const linkSettings = {};
+					const buttons = [];
+					for (let i = 0; i < idWithElements.length; i += batchSize) {
+						const batch = idWithElements.slice(i, i + batchSize);
+						const response = await fetch('<?php echo rest_url( 'gallery-custom-links/v1' ); ?>/link_settings', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-WP-Nonce': '<?php echo wp_create_nonce( 'wp_rest' ); ?>'
+							},
+							body: JSON.stringify({
+								ids: batch.map((v) => v.id),
+								ancestors: batch.map((v) => ({
+									key: v.key,
+									id: v.id,
+									classNames: [v.element.parentElement, v.element.parentElement?.parentElement]
+										.map((el) => (el ? el.getAttribute('class') || '' : '')).join(' ').trim()
+								}))
+							})
+						});
+						const result = await response.json();
+						if ( !result.success ) {
+							break;
+						}
+						Object.assign(linkSettings, result.data.linkSettings);
+						buttons.push(...result.data.buttons);
 					}
-					const { linkSettings, buttons } = result.data;
 					idWithElements.forEach((v) => {
 						const { key, id, element } = v;
 						const settings = linkSettings ? linkSettings[id] : null;
@@ -486,10 +494,17 @@ class Meow_MGCL_Core
 		<?php
 	}
 
+	function get_link_settings_max_ids() {
+		return max( 1, (int)apply_filters( 'mgcl_link_settings_max_ids', 200 ) );
+	}
+
 	function rest_link_settings( $request ) {
-		$ids = (array)$request->get_param( 'ids' );
-		$ids = array_unique( $ids );
-		if ( !$ids || count( $ids ) === 0 ) {
+		// Public endpoint: only positive IDs, and a cap so one request can't trigger thousands of meta lookups.
+		$max_ids = $this->get_link_settings_max_ids();
+		$ids = array_map( 'intval', array_filter( (array)$request->get_param( 'ids' ), 'is_scalar' ) );
+		$ids = array_filter( $ids, function ( $id ) { return $id > 0; } );
+		$ids = array_slice( array_values( array_unique( $ids ) ), 0, $max_ids );
+		if ( empty( $ids ) ) {
 			return new WP_REST_Response( [ 'success' => false, 'message' => 'Missing ids parameter.' ], 400 );
 		}
 		$link_settings = [];
@@ -506,7 +521,7 @@ class Meow_MGCL_Core
 				'link_aria' => $link_aria,
 			];
 		}
-		$ancestors = (array)$request->get_param( 'ancestors' );
+		$ancestors = array_slice( (array)$request->get_param( 'ancestors' ), 0, $max_ids );
 		$buttons = [];
 		if ( get_option( 'mgcl_button_enabled', false ) ) {
 			require_once( 'button/gutenberg.php' );
@@ -518,11 +533,16 @@ class Meow_MGCL_Core
 
 			$label = get_option( 'mgcl_button_label', "Click here" );
 			foreach ( $ancestors as $value ) {
-				$link_setting = $link_settings[$value['id']];
+				$media_id = is_array( $value ) && isset( $value['id'] ) && is_scalar( $value['id'] ) ? (int)$value['id'] : 0;
+				if ( !isset( $link_settings[$media_id], $value['key'] ) || !is_scalar( $value['key'] ) ) {
+					continue;
+				}
+				$link_setting = $link_settings[$media_id];
+				$class_names = isset( $value['classNames'] ) && is_string( $value['classNames'] ) ? $value['classNames'] : '';
 				$buttons[] = [
-					'key' => $value['key'],
+					'key' => absint( $value['key'] ),
 					'html' => $link_setting['link_url']
-						? apply_filters( 'mgcl_button_linker', '', $value['classNames'], $link_setting['link_url'], $label, $link_setting['link_rel'], $link_setting['link_target'] )
+						? apply_filters( 'mgcl_button_linker', '', $class_names, $link_setting['link_url'], $label, $link_setting['link_rel'], $link_setting['link_target'] )
 						: '',
 				];
 			}

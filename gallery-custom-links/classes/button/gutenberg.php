@@ -6,7 +6,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
 
 	public function __construct( $core ) {
     $this->core = $core;
-    add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 7 );
+    add_filter( 'mgcl_linkers', array( $this, 'linker' ), 100, 8 );
     add_filter( 'mgcl_button_linker', array( $this, 'button_linker' ), 100, 6 );
 	}
 
@@ -19,10 +19,12 @@ class Meow_MGCL_Core_Button_Gutenberg {
         display: flex;
         justify-content: end;
         padding: 5px;
+        box-sizing: border-box;
       }
       #mgcl-$id a {
         height: auto !important;
         flex: none !important;
+        box-sizing: border-box;
       }
       #mgcl-$id a {
         font-size: 15px;
@@ -68,7 +70,7 @@ class Meow_MGCL_Core_Button_Gutenberg {
     </style>";
   }
 
-	function linker( $handled, $element, $parent, $mediaId, $url, $rel, $target ) {
+	function linker( $handled, $element, $parent, $mediaId, $url, $rel, $aria, $target ) {
     // Let's look for the closest link tag enclosing the image
 
     $elemBlocksGalleryItem = $parent->parent();

@@ -5,7 +5,7 @@ if ( !class_exists( 'MeowKit_MGCL_Admin' ) ) {
   class MeowKit_MGCL_Admin {
     public static $loaded = false;
     public static $version = '5.1';
-    public static $admin_version = '5.1';
+    public static $admin_version = '5.3';
     public static $network_license_modal_added = false;
     public static $network_license_plugins = [];
 
@@ -45,6 +45,11 @@ if ( !class_exists( 'MeowKit_MGCL_Admin' ) ) {
       $this->isPro = $isPro;
       $this->disableReview = $disableReview;
       self::register_copy();
+
+      // Before the AJAX early return below: the review line's Later / never / done.
+      if ( !$disableReview ) {
+        add_action( 'wp_ajax_meowapps_review', [ 'MeowKit_MGCL_Ratings', 'ajax_review' ] );
+      }
 
       if ( is_admin() ) {
 
@@ -192,6 +197,12 @@ if ( !class_exists( 'MeowKit_MGCL_Admin' ) ) {
         add_filter( 'meowapps_plugins_status', [ $this, 'status_row' ] );
         // The site facts the Health tab explains, printed in the footer by the newest copy only.
         add_action( 'admin_footer', [ $this, 'print_site_facts' ] );
+        // Whether AI Engine is active or only installed, for the AI Engine switch in block headers.
+        add_action( 'admin_footer', [ $this, 'print_ai_engine_status' ] );
+        // Free builds: the Pro prices for the hover card on the silver header tile.
+        if ( !$this->isPro ) {
+          add_action( 'admin_footer', [ $this, 'print_pro_prices' ] );
+        }
         if ( !$this->disableReview ) {
           new MeowKit_MGCL_Ratings( $this->prefix, $this->mainfile, $this->domain );
         }
@@ -487,6 +498,12 @@ if ( !class_exists( 'MeowKit_MGCL_Admin' ) ) {
     }
 
     public function admin_notices_licensed_free() {
+      // Pro-only add-ons (mwai-*) have no premium/ folder, so isPro is false although they ARE the
+      // paid plugin. Their licenser is loaded, which never happens in a free build. Without this,
+      // Notifications 0.2.0 offered paying customers a "Remove the license" button (11-03).
+      if ( class_exists( 'MeowKitPro_MGCL_Licenser', false ) ) {
+        return;
+      }
       // Verify the nonce before removing the license from a POST request (CSRF protection).
       if ( isset( $_POST[$this->prefix . '_reset_sub'] )
         && isset( $_POST[ $this->prefix . '_reset_sub_nonce' ] )
@@ -767,6 +784,85 @@ if ( !class_exists( 'MeowKit_MGCL_Admin' ) ) {
       // older one during a rollout, so it cannot be trusted to print them.
       $rows = apply_filters( 'meowapps_plugins_status', [] );
       echo '<script type="application/json" id="meow-common-status">' . wp_json_encode( array_values( $rows ), JSON_HEX_TAG | JSON_HEX_AMP ) . '</script>';
+    }
+
+    /**
+     * window.meowPrices for the silver tile's hover card ("Pro from $19 a year"). Read from
+     * prices.json, which the release copies into common from meowapps.com/prices.json: a free plugin
+     * must never call our server itself (wp.org guideline 7), so the price ships with the plugin.
+     */
+    public function print_pro_prices() {
+      if ( empty( $_GET['page'] ) || !empty( $GLOBALS['meowapps_prices_printed'] ) ) {
+        return;
+      }
+      $file = __DIR__ . '/prices.json';
+      $data = is_readable( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
+      if ( empty( $data['plugins'] ) || !is_array( $data['plugins'] ) ) {
+        return;
+      }
+      $GLOBALS['meowapps_prices_printed'] = true;
+      $prices = [];
+      foreach ( $data['plugins'] as $slug => $p ) {
+        if ( !empty( $p['from'] ) ) {
+          $prices[ sanitize_key( $slug ) ] = [ 'from' => (float) $p['from'], 'monthly' => (float) ( $p['monthly'] ?? 0 ) ];
+        }
+      }
+      echo '<script>window.meowPrices = Object.assign(window.meowPrices || {}, ' . wp_json_encode( $prices ) . ');</script>';
+    }
+
+    /**
+     * window.meowAIEngine for NekoUI's AI Engine switch: On when active, Off (with a link to the
+     * Plugins page) when installed but deactivated, a download icon when missing. JS alone can't
+     * tell "deactivated" from "missing". Printed on any of our admin pages.
+     */
+    public function print_ai_engine_status() {
+      // The newest copy always prints (its line comes later and wins); others only if nobody did yet.
+      // AI Engine 3.9.3 ships the first version of this, without the models, and loads first.
+      if ( empty( $_GET['page'] ) || ( !empty( $GLOBALS['meowapps_ai_engine_status_printed'] ) && !self::is_newest_copy() ) ) {
+        return;
+      }
+      $GLOBALS['meowapps_ai_engine_status_printed'] = true;
+      $status = [
+        'active' => class_exists( 'Meow_MWAI_Core' ),
+        'installed' => file_exists( WP_PLUGIN_DIR . '/ai-engine/ai-engine.php' )
+          || file_exists( WP_PLUGIN_DIR . '/ai-engine-pro/ai-engine-pro.php' ),
+      ];
+      // The default models, for the switch's hover card ("Default · gpt-5.4 (OpenAI)"). Model and
+      // environment names only, never keys. A role without its own environment uses the default one.
+      if ( $status['active'] ) {
+        // AI Engine's own options (defaults filled in, engines with their models), so the nice model
+        // names ("Claude Haiku 4.5") and the defaults match what its settings screen shows.
+        $core = $GLOBALS['mwai_core'] ?? null;
+        $o = $core && method_exists( $core, 'get_all_options' ) ? $core->get_all_options() : get_option( 'mwai_options', [] );
+        $envs = [];
+        foreach ( (array) ( $o['ai_envs'] ?? [] ) as $env ) {
+          if ( !empty( $env['id'] ) ) {
+            $envs[ $env['id'] ] = $env['name'] ?? ( $env['type'] ?? '' );
+          }
+        }
+        $names = [];
+        foreach ( (array) ( $o['ai_engines'] ?? [] ) as $engine ) {
+          foreach ( (array) ( $engine['models'] ?? [] ) as $m ) {
+            if ( !empty( $m['model'] ) && !empty( $m['name'] ) ) {
+              $names[ $m['model'] ] = $m['name'];
+            }
+          }
+        }
+        $default_env = $o['ai_default_env'] ?? '';
+        $models = [];
+        $roles = [ 'Default' => 'ai_default', 'Fast' => 'ai_fast_default', 'Vision' => 'ai_vision_default',
+          'Images' => 'ai_images_default', 'Embeddings' => 'ai_embeddings_default' ];
+        foreach ( $roles as $label => $key ) {
+          if ( empty( $o[ $key . '_model' ] ) ) {
+            continue;
+          }
+          $id = (string) $o[ $key . '_model' ];
+          $env = !empty( $o[ $key . '_env' ] ) ? $o[ $key . '_env' ] : $default_env;
+          $models[] = [ 'role' => $label, 'model' => $names[ $id ] ?? $id, 'env' => $envs[ $env ] ?? '' ];
+        }
+        $status['models'] = $models;
+      }
+      echo '<script>window.meowAIEngine = ' . wp_json_encode( $status ) . ';</script>';
     }
 
     public function site_facts() {

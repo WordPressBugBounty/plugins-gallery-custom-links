@@ -16,6 +16,8 @@ class Meow_MGCL_Core
 	public $skipOnCurrentPage = false;
 	public $site_url = null;
 	private $is_visitor = false;
+	private $imageIds = null;
+	private $imageIdsDirty = false;
 	private $namespace = 'gallery-custom-links/v1';
 
 	public function __construct() {
@@ -29,6 +31,9 @@ class Meow_MGCL_Core
 		$this->is_visitor = !$this->is_cli && !$this->is_rest && !is_admin();
 		class_exists( 'MeowPro_MGCL_Core' ) && new MeowPro_MGCL_Core( $this );
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		add_action( 'add_attachment', array( $this, 'clear_image_ids' ) );
+		add_action( 'delete_attachment', array( $this, 'clear_image_ids' ) );
+		add_action( 'shutdown', array( $this, 'save_image_ids' ), 1000 );
 
 		// For visitors (client-side)
 		if ( $this->is_visitor ) {
@@ -114,8 +119,8 @@ class Meow_MGCL_Core
 			return ltrim( substr( $image_src, strlen( $uploads_url ) ), '/');
 		else if ( strpos( $image_src, wp_make_link_relative( $uploads_url ) ) === 0 )
 			return ltrim( substr( $image_src, strlen( wp_make_link_relative( $uploads_url ) ) ), '/');
-		$img_info = parse_url( $image_src );
-		return ltrim( $img_info['path'], '/' );
+		$path = parse_url( $image_src, PHP_URL_PATH );
+		return is_string( $path ) ? ltrim( $path, '/' ) : '';
 	}
 
 	function resolve_image_id( $url ) {
@@ -124,29 +129,72 @@ class Meow_MGCL_Core
 		if ( !is_array( $galleryCustomLinksCache ) ) {
 		  $galleryCustomLinksCache = [];
 		}
+		// Nothing to look up: a lazy-loaded image without src, or an inline data/blob image.
+		// An empty path used to become LIKE '%%', which matched any post at all.
+		if ( empty( $url ) || preg_match( '/^(data|blob):/i', $url ) ) {
+			return null;
+		}
 		$pattern = '/[_-]\d+x\d+(?=\.[a-z]{3,4}$)/';
 		$url = preg_replace( $pattern, '', $url );
 		$url = $this->get_pathinfo_from_image_src( $url );
-		$urlLike = '%' . $url . '%';
-		if ( array_key_exists( $urlLike, $galleryCustomLinksCache ) ) {
-		  $attachment = $galleryCustomLinksCache[$urlLike];   
+		if ( $url === '' ) {
+			return null;
+		}
+		// These lookups ran for every image without an ID class on every page view (wp.org "Database
+		// overloaded", 2026-11). Besides the object cache (only shared with Redis or Memcached), their
+		// results, misses included, are kept for a day in a transient; adding or deleting an attachment clears it.
+		if ( $this->imageIds === null ) {
+			$this->imageIds = get_transient( 'mgcl_image_ids' );
+			$this->imageIds = is_array( $this->imageIds ) ? $this->imageIds : [];
+		}
+		if ( array_key_exists( $url, $galleryCustomLinksCache ) ) {
+			$attachment = $galleryCustomLinksCache[$url];
+		}
+		else if ( array_key_exists( $url, $this->imageIds ) ) {
+			$attachment = $this->imageIds[$url] ? [ $this->imageIds[$url] ] : [];
+			$galleryCustomLinksCache[$url] = $attachment;
 		}
 		else {
-			$query = $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE guid LIKE '%s' LIMIT 1", $urlLike );
-			$attachment = $wpdb->get_col( $query );
-			// Code proposed by @wizardcoder
-			// https://wordpress.org/support/topic/issue-with-page-links-on-images/
-			if ( empty( $attachment ) ) {
-				$query = $wpdb->prepare("SELECT post_id FROM $wpdb->postmeta 
-					WHERE meta_value LIKE '%s' 
-					AND meta_key = '_wp_attached_file' 
-					LIMIT 1", $urlLike 
-				);
-				$attachment = $wpdb->get_col( $query );
+			// Shared across requests when the site has a persistent object cache (Redis, Memcached).
+			$attachment = wp_cache_get( $url, 'mgcl_image_ids', false, $found );
+			if ( !$found ) {
+				// 1. Exact match on the attached file: uses the meta_key index, so it is cheap.
+				$attachment = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta
+					WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1", $url ) );
+				// 2. Otherwise, the original partial matches (CDN or rewritten URLs, migrated sites).
+				if ( empty( $attachment ) ) {
+					$urlLike = '%' . $wpdb->esc_like( $url ) . '%';
+					$attachment = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts
+						WHERE post_type = 'attachment' AND guid LIKE %s LIMIT 1", $urlLike ) );
+					// Code proposed by @wizardcoder
+					// https://wordpress.org/support/topic/issue-with-page-links-on-images/
+					if ( empty( $attachment ) ) {
+						$attachment = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta
+							WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s LIMIT 1", $urlLike ) );
+					}
+				}
+				// Not-found results are cached too, they are the expensive ones (both scans run fully).
+				wp_cache_set( $url, $attachment, 'mgcl_image_ids', HOUR_IN_SECONDS );
 			}
-			$galleryCustomLinksCache[$urlLike] = $attachment;
+			$galleryCustomLinksCache[$url] = $attachment;
+			if ( count( $this->imageIds ) < 5000 ) {
+				$this->imageIds[$url] = empty( $attachment ) ? 0 : (int)$attachment[0];
+				$this->imageIdsDirty = true;
+			}
 		}
 		return empty( $attachment ) ? null : $attachment[0];
+	}
+
+	function save_image_ids() {
+		if ( $this->imageIdsDirty ) {
+			set_transient( 'mgcl_image_ids', $this->imageIds, DAY_IN_SECONDS );
+		}
+	}
+
+	function clear_image_ids() {
+		delete_transient( 'mgcl_image_ids' );
+		$this->imageIds = [];
+		$this->imageIdsDirty = false;
 	}
 
 	function linkify_element( $element ) {

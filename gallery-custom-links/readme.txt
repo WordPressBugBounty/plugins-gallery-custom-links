@@ -5,7 +5,7 @@ Donate link: https://www.patreon.com/meowapps
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 2.3.6
+Stable tag: 2.3.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ Languages: English.
 Replace all the files. Nothing else to do.
 
 == Changelog ==
+
+= 2.3.7 (2026/11/10) =
+* Update: Images without an ID now reuse a cached lookup for a day instead of querying the database on every page view.
+* Update: Faster image lookup queries when resolving media IDs from URLs.
+* Update: Synced the Meow Apps common library (admin, licenses and ratings).
+* Fix: Images with an empty src no longer match a random attachment through an incorrect database query.
 
 = 2.3.6 (2026/10/30) =
 * Fix: Security: Prevent a duplicated attribute from being written unquoted by the page parser.
